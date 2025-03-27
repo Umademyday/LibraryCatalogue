@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
-from app.database import Base
+from app.database import base
 
-class Book(Base):
+class Book(base.Base):
     __tablename__ = "books"
 
     id = Column(Integer, primary_key=True, index=True)
