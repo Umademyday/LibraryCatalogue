@@ -1,0 +1,27 @@
+<!-- templates/upload.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Book</title>
+</head>
+<body>
+  <h1>Upload a Book</h1>
+  <form action="/upload" method="post">
+    <label for="title">Title:</label><br>
+    <input type="text" name="title" required><br><br>
+
+    <label for="author">Author:</label><br>
+    <input type="text" name="author" required><br><br>
+
+    <label for="genre">Genre:?</label><br>
+    <input type="text" name="genre" required><br><br>
+
+    <label for="location">Location:</label><br>
+    <input type="text" name="location" required><br><br>
+
+    <button type="submit">Upload</button>
+  </form>
+  <br>
+  <a href="/">Back to Library</a>
+</body>
+</html>

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
 from app.database import base
 
+
 class Book(base.Base):
     __tablename__ = "books"
 
