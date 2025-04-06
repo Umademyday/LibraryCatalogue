@@ -11,6 +11,9 @@ from app.database.deps import get_db
 from app.database.session import engine
 from . import models, crud
 
+# Move it to config file
+GENRES = ["Child book", "Just book", "Other"]
+LOCATIONS = ["Madrid", "Moscow", "St. Peterbourg", "London", "Lebedyan"]
 
 
 # Create tables
@@ -29,10 +32,14 @@ app.include_router(books.router)
 # Templates directory
 templates = Jinja2Templates(directory="app/templates")
 
-# GET: upload form
+
 @app.get("/upload")
 async def upload_form(request: Request):
-    return templates.TemplateResponse("upload.html", {"request": request})
+    return templates.TemplateResponse("upload.html", {
+        "request": request,
+        "genres": GENRES,
+        "locations": LOCATIONS
+    })
 
 # POST: handle form
 @app.post("/upload")

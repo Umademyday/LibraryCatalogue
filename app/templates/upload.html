@@ -13,11 +13,19 @@
     <label for="author">Author:</label><br>
     <input type="text" name="author" required><br><br>
 
-    <label for="genre">Genre:?</label><br>
-    <input type="text" name="genre" required><br><br>
+    <label for="genre">Genre:</label><br>
+    <select name="genre" required>
+      {% for g in genres %}
+        <option value="{{ g }}">{{ g }}</option>
+      {% endfor %}
+    </select><br><br>
 
     <label for="location">Location:</label><br>
-    <input type="text" name="location" required><br><br>
+    <select name="location" required>
+      {% for l in locations %}
+        <option value="{{ l }}">{{ l }}</option>
+      {% endfor %}
+    </select><br><br>
 
     <button type="submit">Upload</button>
   </form>
