@@ -6,7 +6,7 @@
 </head>
 <body>
   <h1>Upload a Book</h1>
-  <form action="/upload" method="post">
+  <form action="/upload" method="post" enctype="multipart/form-data">
     <label for="title">Title:</label><br>
     <input type="text" name="title" required><br><br>
 
@@ -26,6 +26,9 @@
         <option value="{{ l }}">{{ l }}</option>
       {% endfor %}
     </select><br><br>
+
+    <label for="cover_image">Cover Image:</label><br>
+    <input type="file" name="cover_image" accept="image/*"><br><br>
 
     <button type="submit">Upload</button>
   </form>

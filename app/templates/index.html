@@ -8,7 +8,13 @@
     <h1>Book List</h1>
     <ul>
         {% for book in books %}
-        <li><strong>{{ book.title }}</strong> by {{ book.author }}</li>
+          <div>
+            <h3>{{ book.title }}</h3>
+            <p>By {{ book.author }} — {{ book.genre }} ({{ book.location }})</p>
+            {% if book.cover_image %}
+              <img src="{{ book.cover_image }}" alt="Cover" style="max-height: 150px;">
+            {% endif %}
+          </div>
         {% endfor %}
     </ul>
 
