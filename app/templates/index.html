@@ -11,11 +11,22 @@
           <div>
             <h3>{{ book.title }}</h3>
             <p>By {{ book.author }} — {{ book.genre }} ({{ book.location }})</p>
+
             {% if book.cover_image %}
               <img src="{{ book.cover_image }}" alt="Cover" style="max-height: 150px;">
             {% endif %}
+
+            <!-- Edit and Delete Buttons -->
+            <form action="/edit/{{ book.id }}" method="get" style="display:inline;">
+                <button type="submit">Edit</button>
+            </form>
+
+            <form action="/delete/{{ book.id }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
+              <button type="submit">Delete</button>
+            </form>
           </div>
-        {% endfor %}
+  <hr>
+{% endfor %}
     </ul>
 
     <h1>Library</h1>

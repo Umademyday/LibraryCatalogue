@@ -75,3 +75,47 @@ async def upload_book(
     db.add(new_book)
     db.commit()
     return RedirectResponse("/", status_code=303)
+
+
+@app.get("/edit/{book_id}")
+def edit_book_form(book_id: int, request: Request, db: Session = Depends(get_db)):
+    book = db.query(models.Book).get(book_id)
+    if not book:
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse("edit.html", {
+        "request": request,
+        "book": book,
+        "genres": GENRES,
+        "locations": LOCATIONS
+    })
+
+
+@app.post("/edit/{book_id}")
+def update_book(
+        book_id: int,
+        title: str = Form(...),
+        author: str = Form(...),
+        genre: str = Form(...),
+        location: str = Form(...),
+        db: Session = Depends(get_db)
+):
+    book = db.query(models.Book).get(book_id)
+    if not book:
+        return RedirectResponse("/", status_code=302)
+
+    book.title = title
+    book.author = author
+    book.genre = genre
+    book.location = location
+
+    db.commit()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/delete/{book_id}")
+def delete_book(book_id: int, db: Session = Depends(get_db)):
+    book = db.query(models.Book).get(book_id)
+    if book:
+        db.delete(book)
+        db.commit()
+    return RedirectResponse("/", status_code=303)
