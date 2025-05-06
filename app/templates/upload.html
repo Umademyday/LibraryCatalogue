@@ -32,6 +32,17 @@
 
     <button type="submit">Upload</button>
   </form>
+
+  {% if image_url %}
+    <h2>Uploaded Image Preview:</h2>
+    <img src="{{ image_url }}" alt="Uploaded Cover" width="300">
+  {% endif %}
+
+  {% if raw_text %}
+    <h2>Extracted Text (OCR):</h2>
+    <pre style="white-space: pre-wrap;">{{ raw_text }}</pre>
+  {% endif %}
+
   <br>
   <a href="/">Back to Library</a>
 </body>

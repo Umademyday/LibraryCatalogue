@@ -44,14 +44,16 @@ async def upload_form(request: Request):
 # POST: handle form
 @app.post("/upload")
 async def upload_book(
-    title: str = Form(...),
-    author: str = Form(...),
+    request: Request,
+    title: str = Form(""),
+    author: str = Form(""),
     genre: str = Form(...),
     location: str = Form(...),
     cover_image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     image_path = None
+    raw_text = None
 
     if cover_image:
         UPLOAD_DIR = r"G:\book_images"
@@ -65,16 +67,29 @@ async def upload_book(
 
         image_path = f"/media/{filename}"
 
-    new_book = models.Book(
-        title=title,
-        author=author,
-        genre=genre,
-        location=location,
-        cover_image=image_path  # store path in DB
-    )
-    db.add(new_book)
-    db.commit()
-    return RedirectResponse("/", status_code=303)
+        # OCR processing
+        try:
+            import cv2
+            import numpy as np
+            import pytesseract
+
+            image = cv2.imread(file_path)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+            raw_text = pytesseract.image_to_string(thresh, lang="eng+spa+rus")
+        except Exception as e:
+            raw_text = f"OCR failed: {str(e)}"
+
+    # Render upload.html again with extracted text and image
+    return templates.TemplateResponse("upload.html", {
+        "request": request,
+        "genres": GENRES,
+        "locations": LOCATIONS,
+        "image_url": image_path,
+        "raw_text": raw_text,
+        "title": title,
+        "author": author
+    })
 
 
 @app.get("/edit/{book_id}")
