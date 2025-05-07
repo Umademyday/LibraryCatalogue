@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 import shutil
 import os
+import cv2
+import pytesseract
 
 from app.routers import books
 from app.database.base import Base
@@ -16,6 +18,7 @@ from . import models, crud
 # Move it to config file
 GENRES = ["Child book", "Just book", "Other"]
 LOCATIONS = ["Madrid", "Moscow", "St. Peterbourg", "London", "Lebedyan"]
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 # Create tables
@@ -41,16 +44,11 @@ async def upload_form(request: Request):
         "locations": LOCATIONS
     })
 
-# POST: handle form
-@app.post("/upload")
-async def upload_book(
+
+@app.post("/upload/cover")
+async def upload_cover_only(
     request: Request,
-    title: str = Form(""),
-    author: str = Form(""),
-    genre: str = Form(...),
-    location: str = Form(...),
-    cover_image: UploadFile = File(None),
-    db: Session = Depends(get_db)
+    cover_image: UploadFile = File(...),
 ):
     image_path = None
     raw_text = None
@@ -67,12 +65,8 @@ async def upload_book(
 
         image_path = f"/media/{filename}"
 
-        # OCR processing
+        # OCR
         try:
-            import cv2
-            import numpy as np
-            import pytesseract
-
             image = cv2.imread(file_path)
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
@@ -80,16 +74,40 @@ async def upload_book(
         except Exception as e:
             raw_text = f"OCR failed: {str(e)}"
 
-    # Render upload.html again with extracted text and image
     return templates.TemplateResponse("upload.html", {
         "request": request,
         "genres": GENRES,
         "locations": LOCATIONS,
         "image_url": image_path,
         "raw_text": raw_text,
-        "title": title,
-        "author": author
+        "title": "",
+        "author": ""
     })
+
+# POST: Save final book to DB
+@app.post("/upload")
+async def upload_book(
+    title: str = Form(...),
+    author: str = Form(...),
+    genre: str = Form(...),
+    location: str = Form(...),
+    cover_image_path: str = Form(None),
+    db: Session = Depends(get_db)
+):
+
+
+    new_book = models.Book(
+        title=title,
+        author=author,
+        genre=genre,
+        location=location,
+        cover_image=cover_image_path
+    )
+    print('cover_image_path:', cover_image_path)
+    db.add(new_book)
+    db.commit()
+
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/edit/{book_id}")

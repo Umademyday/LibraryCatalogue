@@ -5,45 +5,55 @@
   <title>Upload Book</title>
 </head>
 <body>
-  <h1>Upload a Book</h1>
-  <form action="/upload" method="post" enctype="multipart/form-data">
-    <label for="title">Title:</label><br>
-    <input type="text" name="title" required><br><br>
 
-    <label for="author">Author:</label><br>
-    <input type="text" name="author" required><br><br>
+<h1>Upload Cover for OCR</h1>
+<form action="/upload/cover" method="post" enctype="multipart/form-data">
+  <label for="cover_image">Cover Image:</label><br>
+  <input type="file" name="cover_image" accept="image/*" required>
+  <button type="submit">Run OCR</button>
+</form>
 
-    <label for="genre">Genre:</label><br>
-    <select name="genre" required>
-      {% for g in genres %}
-        <option value="{{ g }}">{{ g }}</option>
-      {% endfor %}
-    </select><br><br>
+{% if image_url %}
+  <h2>Uploaded Cover:</h2>
+  <img src="{{ image_url }}" alt="Book Cover" width="300">
+{% endif %}
 
-    <label for="location">Location:</label><br>
-    <select name="location" required>
-      {% for l in locations %}
-        <option value="{{ l }}">{{ l }}</option>
-      {% endfor %}
-    </select><br><br>
+{% if raw_text %}
+  <h2>Extracted Text:</h2>
+  <pre style="white-space: pre-wrap;">{{ raw_text }}</pre>
+{% endif %}
 
-    <label for="cover_image">Cover Image:</label><br>
-    <input type="file" name="cover_image" accept="image/*"><br><br>
+<hr>
 
-    <button type="submit">Upload</button>
-  </form>
+<h1>Submit Book</h1>
+<form action="/upload" method="post">
+  <input type="hidden" name="cover_image_path" value="{{ image_url }}">
 
-  {% if image_url %}
-    <h2>Uploaded Image Preview:</h2>
-    <img src="{{ image_url }}" alt="Uploaded Cover" width="300">
-  {% endif %}
+  <label for="title">Title:</label><br>
+  <input type="text" name="title" value="{{ title | default('') }}" required><br><br>
 
-  {% if raw_text %}
-    <h2>Extracted Text (OCR):</h2>
-    <pre style="white-space: pre-wrap;">{{ raw_text }}</pre>
-  {% endif %}
+  <label for="author">Author:</label><br>
+  <input type="text" name="author" value="{{ author | default('') }}" required><br><br>
 
-  <br>
-  <a href="/">Back to Library</a>
+  <label for="genre">Genre:</label><br>
+  <select name="genre" required>
+    {% for g in genres %}
+      <option value="{{ g }}">{{ g }}</option>
+    {% endfor %}
+  </select><br><br>
+
+  <label for="location">Location:</label><br>
+  <select name="location" required>
+    {% for l in locations %}
+      <option value="{{ l }}">{{ l }}</option>
+    {% endfor %}
+  </select><br><br>
+
+  <button type="submit">Submit Book</button>
+</form>
+
+<br>
+<a href="/">Back to Library</a>
+
 </body>
 </html>
