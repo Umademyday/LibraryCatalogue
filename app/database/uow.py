@@ -1,14 +1,17 @@
 from contextlib import contextmanager
-
+from app.routers.books import BookRepository
+from app.database.session import SessionLocal
 
 class UnitOfWork:
-    def __init__(self, session_factory):
-        self._session_factory = session_factory
+    def __init__(self, session_factory=SessionLocal):
+        self._sf = session_factory
         self.session = None
+        self.books: BookRepository | None = None
 
     @contextmanager
     def start(self):
-        self.session = self._session_factory()
+        self.session = self._sf()
+        self.books = BookRepository(self.session)
         try:
             yield self
             self.session.commit()

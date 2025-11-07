@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request, Form, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
 from uuid import uuid4
 import shutil
 import os
@@ -11,7 +10,6 @@ import pytesseract
 
 from app.routers import books
 from app.database.base import Base
-from app.database.deps import get_db
 from app.database.session import engine
 from . import models
 from app.database.deps import get_uow
@@ -19,7 +17,7 @@ from app.database.deps import get_uow
 # Move it to config file
 GENRES = ["Child book", "Just book", "Other"]
 LOCATIONS = ["Madrid", "Moscow", "St. Peterbourg", "London", "Lebedyan"]
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -85,7 +83,7 @@ async def upload_cover_only(
     })
 
 
-# POST: Save final book to DB
+# POST: Save final book to DB (UoW handles commit/rollback)
 @app.post("/upload")
 def upload_book(
         title: str = Form(...),
@@ -93,20 +91,22 @@ def upload_book(
         genre: str = Form(...),
         location: str = Form(...),
         cover_image_path: str = Form(None),
-        uow=Depends(get_uow),
+        uow = Depends(get_uow),
 ):
     with uow.start():
         new_book = models.Book(
             title=title, author=author, genre=genre,
             location=location, cover_image=cover_image_path
         )
-        uow.session.add(new_book)
+        # Prefer going through the repository:
+        uow.books.add(new_book)
     return RedirectResponse("/", status_code=303)
 
 
 @app.get("/edit/{book_id}")
-def edit_book_form(book_id: int, request: Request, db: Session = Depends(get_db)):
-    book = db.query(models.Book).get(book_id)
+def edit_book_form(book_id: int, request: Request, uow = Depends(get_uow)):
+    with uow.start():
+        book = uow.books.get(book_id)
     if not book:
         return RedirectResponse("/", status_code=302)
     return templates.TemplateResponse("edit.html", {
@@ -124,25 +124,26 @@ def update_book(
         author: str = Form(...),
         genre: str = Form(...),
         location: str = Form(...),
-        db: Session = Depends(get_db)
+        uow = Depends(get_uow),
 ):
-    book = db.query(models.Book).get(book_id)
-    if not book:
-        return RedirectResponse("/", status_code=302)
-
-    book.title = title
-    book.author = author
-    book.genre = genre
-    book.location = location
-
-    db.commit()
+    with uow.start():
+        book = uow.books.get(book_id)
+        if not book:
+            # no changes to commit; UoW will just close
+            return RedirectResponse("/", status_code=302)
+        book.title = title
+        book.author = author
+        book.genre = genre
+        book.location = location
+        # No explicit commit—handled by UoW
     return RedirectResponse("/", status_code=303)
 
 
 @app.post("/delete/{book_id}")
-def delete_book(book_id: int, db: Session = Depends(get_db)):
-    book = db.query(models.Book).get(book_id)
-    if book:
-        db.delete(book)
-        db.commit()
+def delete_book(book_id: int, uow = Depends(get_uow)):
+    with uow.start():
+        book = uow.books.get(book_id)
+        if book:
+            uow.books.delete(book)
+        # Commit/rollback handled by UoW
     return RedirectResponse("/", status_code=303)
