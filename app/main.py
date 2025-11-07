@@ -13,13 +13,13 @@ from app.routers import books
 from app.database.base import Base
 from app.database.deps import get_db
 from app.database.session import engine
-from . import models, crud
+from . import models
+from app.database.deps import get_uow
 
 # Move it to config file
 GENRES = ["Child book", "Just book", "Other"]
 LOCATIONS = ["Madrid", "Moscow", "St. Peterbourg", "London", "Lebedyan"]
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -47,8 +47,8 @@ async def upload_form(request: Request):
 
 @app.post("/upload/cover")
 async def upload_cover_only(
-    request: Request,
-    cover_image: UploadFile = File(...),
+        request: Request,
+        cover_image: UploadFile = File(...),
 ):
     image_path = None
     raw_text = None
@@ -84,28 +84,23 @@ async def upload_cover_only(
         "author": ""
     })
 
+
 # POST: Save final book to DB
 @app.post("/upload")
-async def upload_book(
-    title: str = Form(...),
-    author: str = Form(...),
-    genre: str = Form(...),
-    location: str = Form(...),
-    cover_image_path: str = Form(None),
-    db: Session = Depends(get_db)
+def upload_book(
+        title: str = Form(...),
+        author: str = Form(...),
+        genre: str = Form(...),
+        location: str = Form(...),
+        cover_image_path: str = Form(None),
+        uow=Depends(get_uow),
 ):
-
-    new_book = models.Book(
-        title=title,
-        author=author,
-        genre=genre,
-        location=location,
-        cover_image=cover_image_path
-    )
-    print('cover_image_path:', cover_image_path)
-    db.add(new_book)
-    db.commit()
-
+    with uow.start():
+        new_book = models.Book(
+            title=title, author=author, genre=genre,
+            location=location, cover_image=cover_image_path
+        )
+        uow.session.add(new_book)
     return RedirectResponse("/", status_code=303)
 
 
