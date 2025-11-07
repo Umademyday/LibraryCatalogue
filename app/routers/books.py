@@ -9,6 +9,7 @@ from app import crud
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+
 @router.get("/", response_class=HTMLResponse)
 def list_books(request: Request, db: Session = Depends(get_db)):
     books = crud.get_all_books(db)

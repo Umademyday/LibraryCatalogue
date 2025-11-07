@@ -23,4 +23,3 @@ if __name__ == "__main__":
     text = extract_text(preprocessed)
 
     print("\n--- Raw OCR Text ---\n", text)
-

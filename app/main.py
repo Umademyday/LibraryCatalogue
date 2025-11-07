@@ -95,7 +95,6 @@ async def upload_book(
     db: Session = Depends(get_db)
 ):
 
-
     new_book = models.Book(
         title=title,
         author=author,
