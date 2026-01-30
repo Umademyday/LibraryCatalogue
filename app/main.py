@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, UploadFile, File
+from fastapi import FastAPI, Request, Form, Depends, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
@@ -18,6 +18,9 @@ from app.database.deps import get_uow
 GENRES = ["Child book", "Just book", "Other"]
 LOCATIONS = ["Madrid", "Moscow", "St. Peterbourg", "London", "Lebedyan"]
 
+# Allowed image extensions and MIME types for cover uploads
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -32,6 +35,22 @@ app.include_router(books.router)
 
 # Templates directory
 templates = Jinja2Templates(directory="app/templates")
+
+
+def validate_image_file(file: UploadFile) -> tuple[bool, str]:
+    """
+    Validate that an uploaded file is a safe image.
+    Returns (is_valid, error_message).
+    """
+    if not file.filename:
+        return False, "No filename provided"
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return False, "Unsupported file extension"
+    if file.content_type not in ALLOWED_MIME_TYPES:
+        return False, "Unsupported file type"
+
+    return True, ""
 
 
 @app.get("/upload")
@@ -52,10 +71,17 @@ async def upload_cover_only(
     raw_text = None
 
     if cover_image:
+        # Validate the uploaded file is a safe image
+        is_valid, error_msg = validate_image_file(cover_image)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
         UPLOAD_DIR = r"G:\book_images"
         os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-        filename = f"{uuid4().hex}_{cover_image.filename}"
+        # Security: Use basename to prevent path traversal attacks
+        safe_filename = os.path.basename(cover_image.filename or "image")
+        filename = f"{uuid4().hex}_{safe_filename}"
         file_path = os.path.join(UPLOAD_DIR, filename)
 
         with open(file_path, "wb") as buffer:
