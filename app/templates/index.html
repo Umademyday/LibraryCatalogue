@@ -3,9 +3,45 @@
 <html>
 <head>
     <title>Online Library Catalogue</title>
+    <style>
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logout-btn {
+            padding: 8px 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
 </head>
 <body>
-    <h1>Book List</h1>
+    <div class="header">
+        <h1>Book List</h1>
+        {% if user %}
+        <div class="user-info">
+            <span>Welcome, {{ user.username }}{% if user.is_admin %} (Admin){% endif %}</span>
+            <form action="/logout" method="post" style="margin: 0;">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
     <ul>
         {% for book in books %}
           <div>

@@ -8,11 +8,13 @@ import os
 import cv2
 import pytesseract
 
-from app.routers import books
+from app.routers import books, auth
 from app.database.base import Base
 from app.database.session import engine
 from . import models
 from app.database.deps import get_uow
+from app.auth.deps import get_current_user, AuthRequired
+from app.models import User
 
 # Move it to config file
 GENRES = ["Child book", "Just book", "Other"]
@@ -32,9 +34,16 @@ app.mount("/media", StaticFiles(directory=r"G:\book_images"), name="media")
 
 # Include routers
 app.include_router(books.router)
+app.include_router(auth.router)
 
 # Templates directory
 templates = Jinja2Templates(directory="app/templates")
+
+
+@app.exception_handler(AuthRequired)
+async def auth_required_handler(request: Request, exc: AuthRequired):
+    """Redirect to login page when authentication is required."""
+    return RedirectResponse("/login", status_code=302)
 
 
 def validate_image_file(file: UploadFile) -> tuple[bool, str]:
@@ -53,12 +62,24 @@ def validate_image_file(file: UploadFile) -> tuple[bool, str]:
     return True, ""
 
 
+@app.get("/")
+def index(request: Request, uow=Depends(get_uow), current_user: User = Depends(get_current_user)):
+    with uow.start():
+        books_list = uow.books.list()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "books": books_list,
+        "user": current_user
+    })
+
+
 @app.get("/upload")
-async def upload_form(request: Request):
+async def upload_form(request: Request, current_user: User = Depends(get_current_user)):
     return templates.TemplateResponse("upload.html", {
         "request": request,
         "genres": GENRES,
-        "locations": LOCATIONS
+        "locations": LOCATIONS,
+        "user": current_user
     })
 
 
@@ -66,6 +87,7 @@ async def upload_form(request: Request):
 async def upload_cover_only(
         request: Request,
         cover_image: UploadFile = File(...),
+        current_user: User = Depends(get_current_user),
 ):
     image_path = None
     raw_text = None
@@ -105,7 +127,8 @@ async def upload_cover_only(
         "image_url": image_path,
         "raw_text": raw_text,
         "title": "",
-        "author": ""
+        "author": "",
+        "user": current_user
     })
 
 
@@ -118,6 +141,7 @@ def upload_book(
         location: str = Form(...),
         cover_image_path: str = Form(None),
         uow = Depends(get_uow),
+        current_user: User = Depends(get_current_user),
 ):
     with uow.start():
         new_book = models.Book(
@@ -130,7 +154,7 @@ def upload_book(
 
 
 @app.get("/edit/{book_id}")
-def edit_book_form(book_id: int, request: Request, uow = Depends(get_uow)):
+def edit_book_form(book_id: int, request: Request, uow = Depends(get_uow), current_user: User = Depends(get_current_user)):
     with uow.start():
         book = uow.books.get(book_id)
     if not book:
@@ -139,7 +163,8 @@ def edit_book_form(book_id: int, request: Request, uow = Depends(get_uow)):
         "request": request,
         "book": book,
         "genres": GENRES,
-        "locations": LOCATIONS
+        "locations": LOCATIONS,
+        "user": current_user
     })
 
 
@@ -151,6 +176,7 @@ def update_book(
         genre: str = Form(...),
         location: str = Form(...),
         uow = Depends(get_uow),
+        current_user: User = Depends(get_current_user),
 ):
     with uow.start():
         book = uow.books.get(book_id)
@@ -166,7 +192,7 @@ def update_book(
 
 
 @app.post("/delete/{book_id}")
-def delete_book(book_id: int, uow = Depends(get_uow)):
+def delete_book(book_id: int, uow = Depends(get_uow), current_user: User = Depends(get_current_user)):
     with uow.start():
         book = uow.books.get(book_id)
         if book:
